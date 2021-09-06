@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 // ignore: import_of_legacy_library_into_null_safe
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 class TodoList extends StatefulWidget {
   @override
@@ -32,36 +33,28 @@ class _TodoListState extends State<TodoList> {
               Map<String, dynamic> data =
                   document.data()! as Map<String, dynamic>;
               //print(document.id);
-              return Dismissible(
+              return Slidable(
                 key: Key(document.id),
                 child: ListTile(
                   title: Text(data['data']),
                 ),
-                background: Container(
-                  color: Colors.red,
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  alignment: AlignmentDirectional.centerStart,
-                  child: Icon(
-                    Icons.delete,
-                    color: Colors.white,
+                actionPane: SlidableDrawerActionPane(),
+                actions: [
+                  IconSlideAction(
+                    caption: 'delete',
+                    color: Colors.red,
+                    icon: Icons.delete,
+                    onTap: () => _removeTodoItem(document.id),
                   ),
-                ),
-                secondaryBackground: Container(
-                  color: Colors.amber,
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  alignment: AlignmentDirectional.centerEnd,
-                  child: Icon(
-                    Icons.edit,
-                    color: Colors.white,
+                ],
+                secondaryActions: [
+                  IconSlideAction(
+                    caption: 'Edit',
+                    color: Colors.yellow,
+                    icon: Icons.edit,
+                    onTap: () => _editTodoItem(data['data'], document.id),
                   ),
-                ),
-                onDismissed: (DismissDirection direction) {
-                  if (direction == DismissDirection.startToEnd)
-                    _removeTodoItem(document.id);
-                  else
-                    _editTodoItem(
-                        data['data'], document.id, data['time_inserted']);
-                },
+                ],
               );
             }).toList(),
           );
@@ -81,12 +74,11 @@ class _TodoListState extends State<TodoList> {
         .add({'data': title, 'time_inserted': FieldValue.serverTimestamp()});
   }
 
-  Future<void> _edit(String update, String id, Timestamp time) {
-    _removeTodoItem(id);
-    return listToDo.add({'data': update, 'time_inserted': time});
+  Future<void> _edit(String update, String id) {
+    return listToDo.doc(id).update({'data': update});
   }
 
-  void _editTodoItem(String data, String id, Timestamp time) {
+  void _editTodoItem(String data, String id) {
     _textFieldController.text = data;
     showDialog(
       barrierDismissible: false,
@@ -102,7 +94,7 @@ class _TodoListState extends State<TodoList> {
             new TextButton(
               child: new Text('Edit'),
               onPressed: () {
-                _edit(_textFieldController.text, id, time);
+                _edit(_textFieldController.text, id);
                 Navigator.of(context).pop();
               },
             )
